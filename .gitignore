@@ -87,3 +87,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+.idea/
+model/
+inception-2015-12-05.tgz
