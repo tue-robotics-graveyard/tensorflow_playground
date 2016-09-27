@@ -4,5 +4,5 @@ URL=http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tg
 FILE=inception-2015-12-05.tgz 
 
 # download inception
-mkdir -p model && wget --no-clobber $URL && tar -xvf $FILE
+mkdir -p model && wget --no-clobber $URL && tar -xvf $FILE -C model
 
