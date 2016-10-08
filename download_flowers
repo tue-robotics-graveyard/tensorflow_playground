@@ -1,0 +1,8 @@
+#!/bin/bash
+
+URL=http://download.tensorflow.org/example_images/flower_photos.tgz
+FILE=flower_photos.tgz
+
+cd ~
+wget --no-clobber $URL
+tar xvf $FILE
