@@ -267,7 +267,7 @@ def main(image_dir, output_dir, steps, batch):
     # some new images we haven't used before.
     test_images, test_labels = create_image_lists(image_dir, VALIDATION_PERCENTAGE, validation=True)
     test_bottlenecks, test_ground_truth \
-        = get_random_bottlenecks(test_images, test_labels, classes, batch, sess, jpeg_data_tensor, bottleneck_tensor)
+        = get_random_bottlenecks(test_images, test_labels, classes, len(test_images), sess, jpeg_data_tensor, bottleneck_tensor)
     test_accuracy = sess.run(
         evaluation_step,
         feed_dict={bottleneck_input: test_bottlenecks,
