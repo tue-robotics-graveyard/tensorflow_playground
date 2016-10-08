@@ -4,27 +4,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from argparse import ArgumentParser, FileType
-from datetime import datetime
 import glob
 import hashlib
+import operator
 import os.path
 import random
 import re
-import sys
-import tarfile
+import shutil
+from argparse import ArgumentParser
+from datetime import datetime
 from itertools import groupby
-from pprint import pprint
-import operator
 from sortedcontainers import SortedSet
 
 import numpy as np
-from six.moves import urllib
 import tensorflow as tf
-
 from tensorflow.python.framework import graph_util
-from tensorflow.python.framework import tensor_shape
-from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
 
 # global settings
@@ -287,6 +281,7 @@ def main(image_dir, output_dir, steps, batch):
         f.write(output_graph_def.SerializeToString())
     with open(os.path.join(output_dir, 'output_labels.txt'), 'w') as f:
         f.write('\n'.join(classes) + '\n')
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
