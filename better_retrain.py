@@ -210,6 +210,11 @@ def get_random_bottlenecks(images, labels, classes, how_many, sess, jpeg_data_te
 
 
 def main(image_dir, output_dir, steps, batch):
+    # Setup the directory we'll write summaries to for TensorBoard
+    if os.path.exists(SUMMARIES_DIR):
+        shutil.rmtree(SUMMARIES_DIR)
+    os.mkdir(SUMMARIES_DIR)
+
     graph, bottleneck_tensor, jpeg_data_tensor, resized_image_tensor = \
         create_inception_graph('model')
 
