@@ -21,8 +21,9 @@ _ITEMS_TO_DESCRIPTIONS = {
 def read_label_file(dataset_dir, filename=LABELS_FILENAME):
     labels_filename = os.path.join(dataset_dir, filename)
     with open(labels_filename) as f:
-        lines = f.readlines()
+        lines = f.read().split('\n')
 
+    lines = filter(None, lines)
     labels_to_class_names = {}
     for line in lines:
         index = line.index(':')
@@ -42,20 +43,17 @@ def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
     if reader is None:
         reader = tf.TFRecordReader
 
+    # build the decoder
     keys_to_features = {
         'image/encoded': tf.FixedLenFeature((), tf.string, default_value=''),
         'image/format': tf.FixedLenFeature((), tf.string, default_value='png'),
-        'image/class/label': tf.FixedLenFeature(
-            [], tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
+        'image/class/label': tf.FixedLenFeature([], tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
     }
-
     items_to_handlers = {
         'image': slim.tfexample_decoder.Image(),
         'label': slim.tfexample_decoder.Tensor('image/class/label'),
     }
-
-    decoder = slim.tfexample_decoder.TFExampleDecoder(
-        keys_to_features, items_to_handlers)
+    decoder = slim.tfexample_decoder.TFExampleDecoder(keys_to_features, items_to_handlers)
 
     labels_to_names = read_label_file(dataset_dir)
 
@@ -65,5 +63,5 @@ def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
         decoder=decoder,
         num_samples=None,
         items_to_descriptions=_ITEMS_TO_DESCRIPTIONS,
-        num_classes=None,
+        num_classes=len(labels_to_names),
         labels_to_names=labels_to_names)
