@@ -16,9 +16,11 @@ def get_dataset(dataset_dir):
 
 
 def get_network_fn(num_classes, is_training=False):
-    func = lambda: None
-    func.default_image_size = 299
-    return func
+    def model(images):
+        net = slim.layers.fully_connected(images, 20, scope='fully_connected')
+        return net, None
+    model.default_image_size = 299
+    return model
 
 
 def image_preprocessing_fn(image, height, width, scope=None):
@@ -67,26 +69,53 @@ def main(dataset_dir, batch_size, log_dir):
     images, labels = tf.train.batch([image, label],
                                     batch_size=batch_size,
                                     capacity=5 * batch_size)
-    labels = slim.one_hot_encoding(labels, dataset.num_classes)
-    batch_queue = slim.prefetch_queue.prefetch_queue([images, labels])
+    ground_truth_input = slim.one_hot_encoding(labels, dataset.num_classes)
 
     ####################
     # Define the model #
     ####################
+    logits, end_points = network_fn(images)
+    predictions = tf.argmax(logits, 1)
+
+    import ipdb; ipdb.set_trace()
+    # Choose the metrics to compute:
+    names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
+        'eval/accuracy': slim.metrics.accuracy(predictions, labels),
+        # 'eval/precision': slim.metrics.precision(predictions, labels),
+        # "eval/mean_absolute_error": slim.metrics.mean_absolute_error(predictions, labels),
+        # "eval/mean_squared_error": slim.metrics.mean_squared_error(predictions, labels),
+    })
+
+
+    #############################
+    # Specify the loss function #
+    #############################
+    slim.losses.softmax_cross_entropy(logits, labels)
+
+    total_loss = slim.losses.get_total_loss()
+    tf.scalar_summary('losses/total_loss', total_loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.001)
+
+    # create_train_op that ensures that when we evaluate it to get the loss,
+    # the update_ops are done and the gradient updates are computed.
+    train_tensor = slim.learning.create_train_op(total_loss, optimizer)
+
+    # Actually runs training.
+    slim.learning.train(train_tensor, log_dir)
 
     ###########################
     # Kicks off the training. #
     ###########################
-    with tf.Session() as sess:
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
-
-        # import ipdb; ipdb.set_trace()
-        for _ in range(5):
-            print(labels.eval())
-
-        coord.request_stop()
-        coord.join(threads)
+    # with tf.Session() as sess:
+    #     coord = tf.train.Coordinator()
+    #     threads = tf.train.start_queue_runners(coord=coord)
+    #
+    #     # import ipdb; ipdb.set_trace()
+    #     for _ in range(5):
+    #         print(labels.eval())
+    #
+    #     coord.request_stop()
+    #     coord.join(threads)
 
 
 if __name__ == '__main__':
