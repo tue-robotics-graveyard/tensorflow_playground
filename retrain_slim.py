@@ -17,8 +17,25 @@ def get_dataset(dataset_dir):
 
 def get_network_fn(num_classes, is_training=False):
     def model(images):
-        net = slim.layers.fully_connected(images, 20, scope='fully_connected')
-        return net, None
+        end_points = {}
+        with tf.variable_scope('MyNet', [images, num_classes]):
+
+            net = slim.conv2d(images, 12, [3, 3], scope='conv1')
+            end_points['conv1'] = net
+
+            net = slim.max_pool2d(net, [2, 2], 2, scope='pool1')
+            end_points['pool1'] = net
+
+            net = slim.flatten(net)
+            end_points['Flatten'] = net
+
+            logits = slim.fully_connected(net, num_classes, scope='logits')
+            end_points['Logits'] = logits
+
+            end_points['Predictions'] = slim.softmax(logits, scope='Predictions')
+
+        return logits, end_points
+
     model.default_image_size = 299
     return model
 
@@ -69,7 +86,7 @@ def main(dataset_dir, batch_size, log_dir):
     images, labels = tf.train.batch([image, label],
                                     batch_size=batch_size,
                                     capacity=5 * batch_size)
-    ground_truth_input = slim.one_hot_encoding(labels, dataset.num_classes)
+    one_hot_labels = slim.one_hot_encoding(labels, dataset.num_classes)
 
     ####################
     # Define the model #
@@ -77,20 +94,16 @@ def main(dataset_dir, batch_size, log_dir):
     logits, end_points = network_fn(images)
     predictions = tf.argmax(logits, 1)
 
+    accuracy = slim.metrics.accuracy(predictions, labels),
+    # precision = slim.metrics.precision(predictions, labels),
+    tf.scalar_summary('metrics/accuracy', accuracy)
+    # tf.scalar_summary('metrics/precision', precision)
     import ipdb; ipdb.set_trace()
-    # Choose the metrics to compute:
-    names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        'eval/accuracy': slim.metrics.accuracy(predictions, labels),
-        # 'eval/precision': slim.metrics.precision(predictions, labels),
-        # "eval/mean_absolute_error": slim.metrics.mean_absolute_error(predictions, labels),
-        # "eval/mean_squared_error": slim.metrics.mean_squared_error(predictions, labels),
-    })
-
 
     #############################
     # Specify the loss function #
     #############################
-    slim.losses.softmax_cross_entropy(logits, labels)
+    slim.losses.softmax_cross_entropy(logits, one_hot_labels)
 
     total_loss = slim.losses.get_total_loss()
     tf.scalar_summary('losses/total_loss', total_loss)
@@ -101,7 +114,7 @@ def main(dataset_dir, batch_size, log_dir):
     train_tensor = slim.learning.create_train_op(total_loss, optimizer)
 
     # Actually runs training.
-    slim.learning.train(train_tensor, log_dir)
+    slim.learning.train(train_tensor, log_dir, save_summaries_secs=30)
 
     ###########################
     # Kicks off the training. #
