@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -74,14 +74,16 @@ def main(dataset_dir, batch_size, log_dir):
     ##############################################################
     # Create a dataset provider that loads data from the dataset #
     ##############################################################
-    provider = slim.dataset_data_provider.DatasetDataProvider(dataset,
+    with tf.variable_scope("dataset"):
+        provider = slim.dataset_data_provider.DatasetDataProvider(dataset,
                                                               common_queue_capacity=20 * batch_size,
                                                               common_queue_min=10 * batch_size)
 
     image, label = provider.get(['image', 'label'])
 
     train_image_size = network_fn.default_image_size
-    image = image_preprocessing_fn(image, train_image_size, train_image_size)
+    with tf.variable_scope("preprocessing"):
+        image = image_preprocessing_fn(image, train_image_size, train_image_size)
 
     images, labels = tf.train.batch([image, label],
                                     batch_size=batch_size,
@@ -96,9 +98,8 @@ def main(dataset_dir, batch_size, log_dir):
 
     accuracy = slim.metrics.accuracy(predictions, labels),
     # precision = slim.metrics.precision(predictions, labels),
-    tf.scalar_summary('metrics/accuracy', accuracy)
+    tf.scalar_summary('metrics/accuracy', accuracy[0])
     # tf.scalar_summary('metrics/precision', precision)
-    import ipdb; ipdb.set_trace()
 
     #############################
     # Specify the loss function #
@@ -114,7 +115,10 @@ def main(dataset_dir, batch_size, log_dir):
     train_tensor = slim.learning.create_train_op(total_loss, optimizer)
 
     # Actually runs training.
-    slim.learning.train(train_tensor, log_dir, save_summaries_secs=30)
+    slim.learning.train(train_tensor, log_dir,
+                        save_summaries_secs=10,
+                        save_interval_secs=30
+                        )
 
     ###########################
     # Kicks off the training. #
@@ -132,7 +136,7 @@ def main(dataset_dir, batch_size, log_dir):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('dataset_dir')
     parser.add_argument('--log_dir', default='log/train')
